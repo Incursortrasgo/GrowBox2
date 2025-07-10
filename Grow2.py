@@ -2,11 +2,11 @@ import time
 import machine
 import socket
 import wifimgr
-import reloj  # Módulo nuevo para gestión de tiempo offline
+import reloj
+from htmlhand import manejar_peticion
 from utils import (
     cargar_config,
     leer_sensor,
-    manejar_peticion,
     controlar_rele,
     controlar_ventilador
 )

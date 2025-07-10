@@ -119,46 +119,78 @@ def handle_root(client):
     wlan_sta.active(True)
     ssids = sorted(ssid.decode("utf-8") for ssid, *_ in wlan_sta.scan())
     send_header(client)
-    client.sendall(
-        """\
-        <html>
-            <h1 style="text-align: center;">
-                Configuracion inicial WiFi
-            </h1>
-            <h3 style="text-align: center;">
-                Seleccione su red WiFi e ingrese la contrasena
-            </h3>
+    client.sendall("""\
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Configuración WiFi GrowBox</title>
+        <style>
+            body {
+                background-color: #1a1a1a;
+                background-image: url("https://source.unsplash.com/1600x900/?plants,greenhouse");
+                background-size: cover;
+                background-repeat: no-repeat;
+                background-attachment: fixed;
+                font-family: Arial, sans-serif;
+                color: #ffffff;
+                padding: 20px;
+            }
+            .container {
+                background-color: rgba(0, 0, 0, 0.7);
+                padding: 30px;
+                border-radius: 12px;
+                max-width: 500px;
+                margin: auto;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            }
+            table {
+                width: 100%;
+            }
+            input[type="submit"], input[type="password"], input[type="radio"] {
+                margin-top: 10px;
+                padding: 8px;
+                font-size: 16px;
+            }
+            h1, h3 {
+                text-shadow: 2px 2px 4px #000000;
+                text-align: center;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Configuración inicial WiFi</h1>
+            <h3>Seleccione su red WiFi e ingrese la contraseña</h3>
             <form action="configure" method="post">
-                <table style="margin-left: auto; margin-right: auto;">
+                <table>
                     <tbody>
-    """)
-    while len(ssids):
-        ssid = ssids.pop(0)
-        client.sendall(
-            """\
+""")
+    for ssid in ssids:
+        client.sendall("""\
                         <tr>
                             <td colspan="2">
-                                <input type="radio" name="ssid" value="{0}" />{0}
+                                <input type="radio" name="ssid" value="{0}" required/> {0}
                             </td>
                         </tr>
         """.format(ssid))
-    client.sendall(
-            """\
-                        <td>&nbsp;</td>
+
+    client.sendall("""\
                         <tr>
-                            <td>Password:</td>
-                            <td><input name="password" type="password" /></td>
+                            <td>Contraseña:</td>
+                            <td><input name="password" type="password" required /></td>
                         </tr>
                     </tbody>
                 </table>
-                    <p style="text-align: center;">
-                        <input type="submit" value="Conectar" />
-                    </p>
-                </form>
-            </html>
-        """)
+                <p style="text-align: center;">
+                    <input type="submit" value="Conectar" />
+                </p>
+            </form>
+        </div>
+    </body>
+</html>
+""")
     client.close()
-
 
 def handle_configure(client, request):
     match = ure.search("ssid=([^&]*)&password=(.*)", request)
@@ -178,24 +210,51 @@ def handle_configure(client, request):
         return False
     if do_connect(ssid, password):
         response = """\
-            <html>
-                <center>
-                    <br><br>
-                    <h3 style="text-align: center;">
-                        GrowBox se conecto con exito a la red WiFi %(ssid)s.
-                    </h3>
-                    <h3 style="text-align: center;">
-                        Espera que la luz azul de tu GrowBox quede fija.
-                    </h3>
-                    <h3 style="text-align: center;">
-                        Espera que tu dispositivo vuelva a conectarse a internet.
-                    </h3>
-                    <h3 style="text-align: center;">
-                        <a href="http://%(ip)s">Ingresa a %(ip)s desde tu navegador</a>
-                    </h3>
-                    <br><br>
-                </center>
-            </html>
+        <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>GrowBox conectado</title>
+                <style>
+                    body {
+                        background-color: #1a1a1a;
+                        background-image: url("https://source.unsplash.com/1600x900/?garden,tech");
+                        background-size: cover;
+                        background-repeat: no-repeat;
+                        background-attachment: fixed;
+                        font-family: Arial, sans-serif;
+                        color: #ffffff;
+                        padding: 20px;
+                    }
+                    .container {
+                        background-color: rgba(0, 0, 0, 0.7);
+                        padding: 30px;
+                        border-radius: 12px;
+                        max-width: 600px;
+                        margin: auto;
+                        text-align: center;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+                    }
+                    h3, a {
+                        text-shadow: 2px 2px 4px #000000;
+                        color: #90ee90;
+                    }
+                    a {
+                        font-size: 18px;
+                        display: inline-block;
+                        margin-top: 12px;
+                        text-decoration: underline;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h3>✅ GrowBox se conectó con éxito a la red WiFi <strong>%(ssid)s</strong>.</h3>
+                    <h3>🔵 Esperá que la luz azul de tu GrowBox quede fija.</h3>
+                    <h3>🌐 Esperá que tu dispositivo vuelva a conectarse a internet.</h3>
+                    <a href="http://%(ip)s">Ir a GrowBox en %(ip)s</a>
+                </div>
+            </body>
+        </html>
         """ % dict(ssid=ssid, ip=wlan_sta.ifconfig()[0])
         send_response(client, response)
         time.sleep(1)
@@ -212,21 +271,55 @@ def handle_configure(client, request):
         return True
     else:
         response = """\
-            <html>
-                <center>
-                    <h1 style="color: #5e9ca0; text-align: center;">
-                        <span style="color: #ff0000;">
-                            GrowBox no se pudo conectar a la red WiFi %(ssid)s.
-                        </span>
-                    </h1>
-                    <br><br>
+        <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Falló la conexión</title>
+                <style>
+                    body {
+                        background-color: #1a1a1a;
+                        background-image: url("https://source.unsplash.com/1600x900/?wifi,error");
+                        background-size: cover;
+                        background-repeat: no-repeat;
+                        background-attachment: fixed;
+                        font-family: Arial, sans-serif;
+                        color: #ffffff;
+                        padding: 20px;
+                    }
+                    .container {
+                        background-color: rgba(0, 0, 0, 0.7);
+                    padding: 30px;
+                        border-radius: 12px;
+                        max-width: 600px;
+                        margin: auto;
+                        text-align: center;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+                    }
+                    h1 {
+                        color: #ff4c4c;
+                        text-shadow: 2px 2px 6px #000000;
+                        }
+                        input[type="button"] {
+                        margin-top: 20px;
+                        padding: 10px 20px;
+                        font-size: 16px;
+                        background-color: #444444;
+                        color: white;
+                        border: none;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>❌ GrowBox no se pudo conectar a la red WiFi <strong>%(ssid)s</strong>.</h1>
                     <form>
-                        <input
-                        type="button"
-                        value="Volver!" onclick="history.back()"></input>
+                        <input type="button" value="Volver" onclick="history.back()" />
                     </form>
-                </center>
-            </html>
+                </div>
+            </body>
+        </html>
         """ % dict(ssid=ssid)
         send_response(client, response)
         return False
